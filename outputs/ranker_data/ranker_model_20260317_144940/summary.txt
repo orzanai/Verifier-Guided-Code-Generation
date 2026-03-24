@@ -1,0 +1,11 @@
+encoder_name=microsoft/codebert-base
+train_path=outputs/ranker_data/pairs_train_20260317_144336.jsonl
+val_path=outputs/ranker_data/pairs_val_20260317_144336.jsonl
+test_path=outputs/ranker_data/pairs_test_20260317_144336.jsonl
+batch_size=16
+max_length=384
+lr=2e-05
+weight_decay=0.01
+epochs=8
+best_val_acc=0.5833333333333334
+test_pairwise_acc=0.14166666666666666

@@ -1,0 +1,7 @@
+metric,value
+tasks,164
+n_candidates,16
+pass_at_1_first_sample,0.8292682926829268
+pass_at_1_random_mean,0.8560975609756097
+pass_at_1_best_of_n,0.9146341463414634
+avg_pass_fraction,0.8475609756097561

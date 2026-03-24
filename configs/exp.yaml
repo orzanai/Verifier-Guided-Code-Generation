@@ -1,0 +1,32 @@
+# configs/exp.yaml
+project_name: "testrank"
+seed: 42
+
+paths:
+  candidates_dir: "outputs/candidates"
+  tests_dir: "outputs/tests"
+  ranker_data_dir: "outputs/ranker_data"
+  results_dir: "outputs/results"
+
+benchmark:
+  name: "openai_humaneval"
+  max_tasks: null
+  task_indices: null
+
+generator:
+  model_name: "Qwen/Qwen2.5-Coder-7B-Instruct"
+  device_map: null
+  torch_dtype: "float16"
+  max_new_tokens: 512
+
+decoding:
+  temperature: 0.6
+  top_p: 0.95
+  do_sample: true
+
+sampling:
+  n_candidates: 8
+
+output:
+  save_prompt: false
+  save_logprobs: false

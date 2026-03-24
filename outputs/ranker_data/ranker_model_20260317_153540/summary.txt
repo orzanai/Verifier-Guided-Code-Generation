@@ -1,0 +1,5 @@
+best_val_acc=0.9020833333333333
+test_pairwise_acc=0.5270833333333333
+train_path=outputs/ranker_data/pairs_prompt_train_20260317_153223.jsonl
+val_path=outputs/ranker_data/pairs_prompt_val_20260317_153223.jsonl
+test_path=outputs/ranker_data/pairs_prompt_test_20260317_153223.jsonl

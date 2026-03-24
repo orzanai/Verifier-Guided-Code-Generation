@@ -1,0 +1,7 @@
+metric,value
+tasks,5
+n_candidates,4
+pass_at_1_first_sample,1.0
+pass_at_1_random_mean,1.0
+pass_at_1_best_of_n,1.0
+avg_pass_fraction,1.0
