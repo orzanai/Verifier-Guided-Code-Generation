@@ -1,14 +1,16 @@
 # Verifier-Guided Code Generation via a Learned Candidate Ranker
 
-This repository accompanies the term paper **“Verifier-Guided Code Generation via a Learned Candidate Ranker”** (Machine Learning for Natural Language Understanding, University of Trier). It contains the implementation and experiment artifacts for a compact study of **selection under test-budget constraints** in code generation.
+This repository accompanies the term paper **“Verifier-Guided Code Generation via a Learned Candidate Ranker”** (Machine Learning for Natural Language Understanding, University of Trier). It contains the implementation and experiment artifacts for a compact study of **selection under unit-test budget constraints** in code generation.
 
-The project treats a common workflow as a research problem: generate multiple candidate solutions, verify them by execution when possible, and decide which candidate to keep. Here, unit tests act as an objective verifier signal, and a learned ranker is trained to prefer candidates that satisfy the task specification.
+This project treats a common workflow as a research problem: generate multiple candidate solutions, verify them by execution when possible, and decide which candidate to keep. Here, unit tests act as an objective verifier signal, and a learned ranker is trained to prefer candidates that satisfy the task specification.
 
 ---
 
 ## What this project studies
 
-Given a programming task with a specification (prompt), we sample **N** candidate programs from a code LLM. Each candidate is labeled by executing unit tests (pass/fail). Using this verifier signal, we train a **prompt-conditioned pairwise ranker** (CodeBERT-based) that scores candidate code *relative to the task*. At inference time, the ranker supports:
+Given a programming task with a specification (prompt), I sample **N** candidate programs from a code LLM. Each candidate is labeled by executing unit tests (pass/fail). Using this verifier signal, I train a **prompt-conditioned pairwise ranker** (CodeBERT-based) that scores candidate code *relative to the task*.
+
+At inference time, the ranker supports:
 
 - **Top-1 selection without testing** (ranker-only selection), and  
 - **Top-k shortlist + tests** (budgeted verification), where only the k highest-ranked candidates are tested.
@@ -59,6 +61,23 @@ Benchmark: **HumanEval (164 tasks)**.
 
 ---
 
+## Full-set vs held-out reporting
+
+This project reports results in two complementary views:
+
+- **Full-set (system view):** performance computed over all tasks present in a candidate/test run (typically all 164 HumanEval tasks). These numbers summarize end-to-end behavior of the pipeline under a fixed generation run and budget.
+
+- **Held-out generalization (main evidence for the selector):** evaluation restricted to **held-out selection-relevant tasks** derived from the pair dataset. A task is *selection-relevant* if its sampled candidate set contains **both** passing and failing candidates, making ranking meaningful and providing pairwise supervision. Results are reported across multiple random task splits as mean ± std.
+
+---
+
 ## Notes on reproducibility
 
-This repo is organized so the pipeline can be rerun end-to-end by following the notebook, but large intermediate artifacts (candidate/test JSONLs, best models) can become heavy and are excluded from version control. The paper reports the exact configuration and hyperparameters used in the final runs.
+This repo is organized so the pipeline can be rerun end-to-end by following `main_.ipynb`. Large intermediate artifacts (some candidate/test JSONLs and model checkpoints) can be heavy and are typically excluded from version control.
+**Note:** Due to university policy, the full paper **cannot be shared publicly**. This repository only provides code, datasets, and reproducibility materials.  
+
+---
+
+## Author
+
+- Abdullah Orzan — s2aborza@uni-trier.de
