@@ -2,10 +2,9 @@
 from __future__ import annotations
 
 import argparse
-import os
 import random
 from collections import defaultdict
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Set, Tuple
 
 import torch
 import torch.nn as nn
@@ -30,7 +29,7 @@ def group_candidates(cand_rows: List[Dict[str, Any]]) -> Dict[str, List[Dict[str
 
 
 def build_pass_map(test_rows: List[Dict[str, Any]]) -> Dict[Tuple[str, int], bool]:
-    m = {}
+    m: Dict[Tuple[str, int], bool] = {}
     for r in test_rows:
         m[(r["task_id"], int(r["cand_id"]))] = bool(r["passed"])
     return m
@@ -38,6 +37,18 @@ def build_pass_map(test_rows: List[Dict[str, Any]]) -> Dict[Tuple[str, int], boo
 
 def make_text_input(prompt: str, code: str) -> str:
     return f"[PROMPT]\n{prompt}\n\n[CODE]\n{code}\n"
+
+
+def load_task_ids_from_jsonl(paths_csv: str) -> Set[str]:
+    """Load unique task_ids from one or more JSONL files."""
+    task_ids: Set[str] = set()
+    paths = [p.strip() for p in (paths_csv or "").split(",") if p.strip()]
+    for p in paths:
+        rows = read_jsonl(p)
+        for r in rows:
+            if "task_id" in r:
+                task_ids.add(r["task_id"])
+    return task_ids
 
 
 class Ranker(nn.Module):
@@ -67,7 +78,7 @@ def score_candidates(
     scores: List[float] = []
 
     for i in range(0, len(texts), batch_size):
-        batch_texts = texts[i:i + batch_size]
+        batch_texts = texts[i : i + batch_size]
         enc = tokenizer(
             batch_texts,
             padding=True,
@@ -158,9 +169,16 @@ def main() -> None:
     parser.add_argument("--max_length", type=int, default=512)
     parser.add_argument("--k_list", type=str, default="1,2,4")
     parser.add_argument("--random_seeds", type=str, default="0,1,2,3,4")
-    args = parser.parse_args()
 
-    _ = load_yaml(args.config)  # kept for consistency
+    # include-only (small, not recommended as main result here)
+    parser.add_argument("--task_ids_from_pairs", type=str, default="",
+                        help="Comma-separated JSONL paths; evaluation restricted to these task_ids.")
+    # exclude (recommended): remove train/val tasks to avoid leakage
+    parser.add_argument("--exclude_task_ids_from_pairs", type=str, default="",
+                        help="Comma-separated JSONL paths; task_ids in these files will be excluded from evaluation.")
+
+    args = parser.parse_args()
+    _ = load_yaml(args.config)
 
     cand_rows = read_jsonl(args.candidates)
     test_rows = read_jsonl(args.tests)
@@ -169,7 +187,24 @@ def main() -> None:
     pass_map = build_pass_map(test_rows)
     prompt_map = build_prompt_map()
 
-    tasks = sorted(by_task.keys())
+    all_tasks = sorted(by_task.keys())
+
+    # Apply task filtering
+    tasks = all_tasks
+    if args.task_ids_from_pairs.strip():
+        allowed = load_task_ids_from_jsonl(args.task_ids_from_pairs)
+        tasks = [t for t in tasks if t in allowed]
+        print("[INFO] Include filter enabled.")
+        print(f"[INFO] Allowed tasks from pairs: {len(allowed)} | Evaluated tasks present in candidates: {len(tasks)} | Dropped: {len(all_tasks) - len(tasks)}")
+
+    if args.exclude_task_ids_from_pairs.strip():
+        excluded = load_task_ids_from_jsonl(args.exclude_task_ids_from_pairs)
+        tasks = [t for t in tasks if t not in excluded]
+        print("[INFO] Exclude filter enabled.")
+        print(f"[INFO] Excluded tasks from pairs: {len(excluded)} | Remaining tasks evaluated: {len(tasks)}")
+
+    if not tasks:
+        raise ValueError("After filtering, no tasks remain to evaluate.")
 
     # load ranker
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -179,7 +214,7 @@ def main() -> None:
     model.load_state_dict(ckpt["state_dict"])
     model.eval()
 
-    # baselines 
+    # baselines
     first = pass_at_1_first(tasks, pass_map)
     best = pass_at_1_best_of_n(tasks, by_task, pass_map)
     seeds = [int(x.strip()) for x in args.random_seeds.split(",") if x.strip()]
@@ -192,7 +227,7 @@ def main() -> None:
     print(f"pass@1 random mean: {rand_mean:.3f} (scores={rand_scores})")
     print(f"pass@1 test-all best-of-N: {best:.3f}")
 
-    # Ranker methods
+    # ranker
     top1 = eval_ranker_top1(tasks, by_task, pass_map, prompt_map, model, tokenizer, device, args.max_length)
     print(f"pass@1 ranker top-1: {top1:.3f}")
 
